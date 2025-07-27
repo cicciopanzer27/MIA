@@ -1,147 +1,181 @@
-import json
-import time
-import uuid
+# src/mia/bridge.py (versione ottimizzata)
+
 import subprocess
+import json
 import threading
+import queue
+import logging
+import time
 from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, field
-import random
+from dataclasses import dataclass, asdict
+from pathlib import Path
+import redis
 
-# --- KSN BRIDGE ---
-class KSNBridge:
-    def __init__(self, lein_path="lein"):
-        self.lein_path = lein_path
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-    def _execute(self, clojure_code: str) -> Dict:
-        try:
-            # Usiamo 'lein exec' che è più adatto per script singoli
-            cmd = [self.lein_path, "exec", "-e", clojure_code]
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=15
-            )
-            if result.returncode == 0:
-                return {"success": True, "result": json.loads(result.stdout.strip())}
-            else:
-                return {"success": False, "error": f"Clojure Error: {result.stderr}"}
-        except json.JSONDecodeError:
-            return {"success": False, "error": f"JSON Decode Error on output: {result.stdout}"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+LEIN_COMMAND = "lein"
 
-    def run_task(self, task: Dict) -> Dict:
-        task_str = json.dumps(task).replace('"', '\\"')
-        clojure_code = f"""
-        (require 'mia.ksn)
-        (require '[clojure.data.json :as json])
-        (let [task-map (json/read-str \\"{task_str}\\" :key-fn keyword)
-              result (mia.ksn/execute-task task-map)]
-          (println (json/write-str result)))
-        """
-        return self._execute(clojure_code)
-
-# --- AGENT DEFINITIONS ---
 @dataclass
-class AgentState:
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    clock: int = 0
-    knowledge_base: Dict[str, Any] = field(default_factory=dict)
+class SimulationRequest:
+    """Richiesta di simulazione verso il core Clojure"""
+    simulator_type: str
+    target_system: Dict[str, Any]
+    # ... altri campi se necessario
 
-class BaseAgent:
-    def __init__(self, agent_id: str, bridge: KSNBridge, message_bus: list):
-        self.state = AgentState(id=agent_id)
-        self.bridge = bridge
-        self.message_bus = message_bus
+class ClojureBridge:
+    _instance = None
+    _lock = threading.Lock()
 
-    def tick(self):
-        self.state.clock += 1
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            with cls._lock:
+                if not cls._instance:
+                    cls._instance = super(ClojureBridge, cls).__new__(cls)
+        return cls._instance
 
-    def act(self):
-        # L'agente base non fa nulla, è solo un osservatore
-        return None
+    def __init__(self, clojure_project_path: str = "./", redis_host: str = "localhost", redis_port: int = 6379):
+        if hasattr(self, 'initialized'):
+            return
+        with self._lock:
+            if hasattr(self, 'initialized'):
+                return
 
-    def share(self, message: Dict):
-        full_message = {
-            "sender_id": self.state.id,
-            "timestamp": time.time(),
-            "content": message
+            self.clojure_path = Path(clojure_project_path)
+            self.process = None
+            self.reader_thread = None
+            self.output_queue = queue.Queue()
+            self.request_futures = {} # Per tracciare le risposte
+
+            self.start_clojure_process()
+
+            try:
+                self.redis_client = redis.Redis(host=redis_host, port=redis_port)
+                self.redis_client.ping()
+                logger.info("✅ Connessione Redis stabilita")
+            except Exception as e:
+                logger.error(f"❌ Errore connessione Redis: {e}")
+                raise
+
+            self.initialized = True
+            logger.info("🌉 Bridge Python-Clojure inizializzato e operativo.")
+
+    def start_clojure_process(self):
+        """Avvia il kernel Clojure come processo persistente."""
+        if self.process and self.process.poll() is None:
+            logger.warning("Il processo Clojure è già in esecuzione.")
+            return
+
+        try:
+            logger.info(f"Avvio del kernel Clojure dal percorso: {self.clojure_path.resolve()}")
+            self.process = subprocess.Popen(
+                [LEIN_COMMAND, "run", "-m", "mia.core"],
+                cwd=str(self.clojure_path.resolve()),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1
+            )
+
+            self.reader_thread = threading.Thread(target=self._enqueue_output, daemon=True)
+            self.reader_thread.start()
+            
+            error_thread = threading.Thread(target=self._log_stderr, daemon=True)
+            error_thread.start()
+
+            # Attendi il messaggio di 'ready' dal kernel
+            try:
+                initial_response = self.output_queue.get(timeout=30)
+                if json.loads(initial_response).get("status") != "ready":
+                    raise RuntimeError("Il kernel Clojure non si è avviato correttamente.")
+                logger.info("✅ Kernel Clojure pronto e in ascolto.")
+            except (queue.Empty, json.JSONDecodeError) as e:
+                logger.error(f"Nessuna risposta di 'ready' dal kernel Clojure. Errore: {e}")
+                self.shutdown()
+                raise RuntimeError("Impossibile inizializzare il kernel Clojure.")
+
+        except FileNotFoundError:
+            logger.error(f"ERRORE CRITICO: Comando '{LEIN_COMMAND}' non trovato.")
+            raise
+        except Exception as e:
+            logger.error(f"ERRORE CRITICO nell'avvio del processo Clojure: {e}")
+            raise
+
+    def _enqueue_output(self):
+        """Legge l'output JSON da stdout e lo mette in una coda o abbina alle richieste."""
+        for line in iter(self.process.stdout.readline, ''):
+            try:
+                response = json.loads(line)
+                request_id = response.get("request_id")
+                if request_id in self.request_futures:
+                    future = self.request_futures.pop(request_id)
+                    future.put(response)
+                else:
+                    # Per output non richiesti o broadcast
+                    self.output_queue.put(response)
+            except json.JSONDecodeError:
+                logger.warning(f"Output non-JSON ricevuto da Clojure: {line.strip()}")
+
+    def _log_stderr(self):
+        """Logga l'output di errore dal processo Clojure."""
+        for line in iter(self.process.stderr.readline, ''):
+            logger.error(f"[Clojure Kernel] {line.strip()}")
+
+    def _send_request(self, command: str, payload: Dict, timeout: int = 30) -> Dict:
+        """Invia una richiesta al kernel e attende una risposta specifica."""
+        request_id = f"req_{int(time.time() * 1000)}"
+        
+        request = {
+            "request_id": request_id,
+            "command": command,
+            "payload": payload
         }
-        self.message_bus.append(full_message)
-        print(f"[{self.state.id}] 📢 Shares: {message.get('type')} with data {message.get('atom', {}).get('id')}")
+        
+        future = queue.Queue()
+        self.request_futures[request_id] = future
+        
+        try:
+            self.process.stdin.write(json.dumps(request) + '\n')
+            self.process.stdin.flush()
+            
+            # Attendi la risposta
+            response = future.get(timeout=timeout)
+            if "error" in response:
+                logger.error(f"Errore dal kernel per la richiesta {request_id}: {response['error']}")
+            return response.get("result", {"error": "Nessun risultato nella risposta"})
 
-    def sync(self):
-        messages_for_me = [
-            msg for msg in self.message_bus if msg["sender_id"] != self.state.id
-        ]
-        for msg in messages_for_me:
-            self.handle_message(msg['content'])
+        except queue.Empty:
+            logger.error(f"Timeout in attesa della risposta per la richiesta {request_id}")
+            self.request_futures.pop(request_id, None)
+            return {"error": "Timeout"}
+        except Exception as e:
+            logger.error(f"Errore durante l'invio della richiesta {request_id}: {e}")
+            self.request_futures.pop(request_id, None)
+            return {"error": str(e)}
 
-    def handle_message(self, content: Dict):
-        if content.get("type") == "new_atom" and content.get("atom"):
-            atom = content["atom"]
-            if atom and atom.get('id'):
-                self.state.knowledge_base[atom['id']] = atom
-                print(f"[{self.state.id}] 🧠 Learned about atom: {atom['id']}")
+    # --- API PUBBLICHE (esempi) ---
+    def simulate_molecule(self, atoms: List[str], conditions: Dict[str, Any]) -> Dict[str, Any]:
+        logger.info(f"🧪 Simulazione molecolare: {'-'.join(atoms)}")
+        payload = {"atoms": atoms, "conditions": conditions}
+        return self._send_request("simulate-molecule", payload)
 
-    def run_cycle(self):
-        print(f"[{self.state.id}] Starting cycle {self.state.clock + 1}")
-        self.tick()
-        self.sync()
-        action_result = self.act()
-        if action_result:
-            self.share(action_result)
+    def symbolic_inference(self, premise: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        logger.info(f"🧠 Inferenza simbolica: {premise[:50]}...")
+        payload = {"premise": premise, "context": context}
+        return self._send_request("symbolic-inference", payload)
 
-class ChemistAgent(BaseAgent):
-    def act(self):
-        if self.state.clock % 3 == 0:
-            element = random.choice([":H", ":C", ":O"])
-            task = {"task": ":create-atom", "payload": {"element": element}}
-            print(f"[{self.state.id}] 🧪 Attempting to create atom {element}...")
-            response = self.bridge.run_task(task)
-            if response.get("success") and response.get("result"):
-                return {"type": "new_atom", "atom": response["result"]}
-            else:
-                print(f"[{self.state.id}] ❌ KSN Bridge Error: {response.get('error')}")
-        return None
+    def health_check(self) -> Dict[str, Any]:
+        return self._send_request("health-check", {})
 
-# --- AGENT MANAGER ---
-class AgentManager:
-    def __init__(self):
-        self.bridge = KSNBridge()
-        self.message_bus = []
-        self.agents: List[BaseAgent] = [
-            ChemistAgent("Chemist-01", self.bridge, self.message_bus),
-            BaseAgent("Observer-01", self.bridge, self.message_bus)
-        ]
+    def shutdown(self):
+        logger.info("🔄 Shutdown bridge in corso...")
+        if self.process:
+            self.process.terminate()
+            self.process.wait(timeout=5)
+        logger.info("✅ Bridge shutdown completato")
 
-    def run_simulation(self, cycles: int):
-        print("--- Starting MIA Simulation ---")
-        for i in range(cycles):
-            print(f"--- Cycle {i+1}/{cycles} ---")
-
-            # In a real system, bus would be handled differently
-            # For this simulation, we pass the whole bus and agents sync
-
-            threads = []
-            for agent in self.agents:
-                thread = threading.Thread(target=agent.run_cycle)
-                threads.append(thread)
-                thread.start()
-
-            for thread in threads:
-                thread.join()
-
-            time.sleep(1)
-        print("\n--- Simulation Ended ---")
-        self.print_summary()
-
-    def print_summary(self):
-        print("\n--- Final Knowledge State ---")
-        for agent in self.agents:
-            print(f"Agent: {agent.state.id}")
-            print(f"  Knowledge items: {len(agent.state.knowledge_base)}")
-            for k, v in agent.state.knowledge_base.items():
-                print(f"    - {k}: {v.get('element')}")
-
-if __name__ == "__main__":
-    manager = AgentManager()
-    manager.run_simulation(10)
+# Mantieni la tua classe SymbolicBridge che eredita da questa
+class SymbolicBridge(ClojureBridge):
+    pass
