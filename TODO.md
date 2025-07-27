@@ -90,3 +90,81 @@ FASE 5: Meta-Cognizione e Sviluppo del Linguaggio Interno
 
 ✅ Test di Efficienza: Misurare se l'uso di PROTO_Σ migliora la precisione o la velocità della collaborazione tra agenti.
 
+new
+
+TODO MIA - Roadmap Operativa Completa
+Questa è la roadmap di sviluppo per il progetto MIA. Ogni fase si basa sulla precedente, trasformando l'architettura da un prototipo a un framework di simulazione ontologica.
+
+FASE 0: Fondamenta e Setup [100% COMPLETATA]
+✅ Risoluzione errori e setup ambiente WSL/Arch Linux.
+
+✅ Creazione e sincronizzazione repository MIA su GitHub.
+
+✅ Creazione e attivazione dell'ambiente Python mia_env.
+
+✅ Apertura del progetto in VS Code (connesso a WSL).
+
+✅ Creazione della struttura di file e cartelle del progetto.
+
+FASE 1: Integrazione e Validazione del Core Simbolico [IN CORSO]
+Obiettivo: Avere un prototipo funzionante, con il "cervello" (Clojure) che comunica con i "corpi" (Python).
+
+[ ] 📋 Popolare tutti i file sorgente: Copiare e incollare il codice Clojure e Python che hai fornito nei file corrispondenti che abbiamo creato.
+
+[ ] 🔧 Passare a Leiningen: Sostituire deps.edn con un file project.clj per una gestione delle dipendenze più robusta.
+
+[ ] ⚙️ Installare Leiningen: Eseguire lo script di installazione per lein nel terminale WSL.
+
+[ ] 🧪 Testare il Kernel (KSN): Eseguire lein test per verificare che tutto il codice Clojure compili e funzioni correttamente in isolamento.
+
+[ ] 🐍 Testare gli Agenti (ASD): Eseguire lo script agent_manager.py per verificare che la società di agenti si avvii e che il SymbolicBridge riesca a chiamare le funzioni del KSN.
+
+FASE 2: Attivazione della Comunicazione Multi-Agente
+Obiettivo: Permettere agli agenti di scambiarsi conoscenza in tempo reale.
+
+[ ] 🐳 Avviare il Backplane di Comunicazione: Lanciare un'istanza di Redis usando un container Docker.
+
+[ ] 🔗 Installare le Librerie Python: Aggiungere redis-py all'ambiente mia_env (pip install redis).
+
+[ ] ✍️ Implementare share(): Modificare la funzione share in base_agent.py per pubblicare messaggi serializzati (JSON) su un canale Redis.
+
+[ ] 📥 Implementare sync(): Modificare la funzione sync per leggere e deserializzare i messaggi dal canale Redis.
+
+[ ] 🧬 Test di Intelligenza Collettiva: Creare uno scenario di test dove un ChemistAgent crea un atomo, lo condivide, e un PhysicsAgent lo riceve e ne analizza le proprietà, condividendo a sua volta l'analisi.
+
+FASE 3: Sviluppo del Simulatore Universale (Livello 1)
+Obiettivo: Iniziare a costruire il simulatore, partendo dal livello quantistico e molecolare.
+
+[ ] 🏗️ Ristrutturare il KSN in Simulatori: Spostare e adattare la logica dai moduli di Fisica (physical/) e Chimica (molecular/) nel nuovo file simulators/quantum_simulator.clj.
+
+[ ] 🔬 Implementare la Prima Funzione di Simulazione: Realizzare la funzione simulate-quantum-molecule che, dato un set di atomi simbolici, deduca la struttura 3D (usando vsepr-prediction) e le proprietà termodinamiche (usando gibbs-free-energy).
+
+[ ] 🌉 Potenziare il Bridge: Aggiungere un metodo a SymbolicBridge in Python per chiamare la nuova funzione simulate-quantum-molecule.
+
+[ ] ✅ Test del Simulatore: Scrivere uno script Python che usi il bridge per simulare la formazione dell'acqua (H₂O) e stampi le proprietà dedotte (geometria angolare, stabilità, etc.).
+
+FASE 4: Attacco alla Prima "Open Question" Verificabile
+Obiettivo: Usare MIA per generare un insight scientifico nuovo e testabile.
+
+[ ] 🎯 Definire la Missione CDK10: Formalizzare l'obiettivo: "Simulare simbolicamente la proteina CDK10 per identificare il ruolo del dominio regolatore Φε e predire l'effetto di mutazioni C-terminali".
+
+[ ] 🏃 Eseguire la Missione: Lanciare la società di agenti con questo obiettivo. Un APIAgent (da sviluppare) potrebbe cercare informazioni di base, mentre i ChemistAgent e PhysicsAgent usano il simulatore per esplorare le configurazioni.
+
+[ ] 📊 Sintetizzare il Risultato: L'agente finale deve produrre un report in formato Markdown che contenga:
+
+La struttura simbolica dedotta di CDK10.
+
+La funzione ipotizzata del dominio Φε.
+
+Una predizione specifica e falsificabile, es: "Una mutazione nel residuo X del dominio C-terminale dovrebbe inibire l'attività kinase anche in presenza di ciclina".
+
+FASE 5: Evoluzione e Visione a Lungo Termine
+Obiettivo: Espandere le capacità di MIA verso la visione finale.
+
+[ ] 🧬 Espandere al Simulatore Biologico (Livello 2): Implementare la simulazione del protein folding e del DNA.
+
+[ ] 🧠 Implementare la Meta-Cognizione: Integrare il modulo self_reflection.clj per permettere agli agenti di valutare la propria confidenza.
+
+[ ] 🔤 Adottare PROTO_Σ: Sperimentare con il meta-linguaggio PROTO_Σ per la comunicazione interna tra agenti.
+
+[ ] 🏆 IL MIRACOLO: Con un sistema maturo e validato, affrontare un problema fondamentale come il Teorema della Soglia Quantistica.

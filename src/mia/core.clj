@@ -1,6 +1,5 @@
 (ns mia.core
-  (:require [clojure.core.logic :as l]
-            [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s]))
 
 ;; === STRUTTURE DATI SIMBOLICHE ===
 

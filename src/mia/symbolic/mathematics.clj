@@ -78,7 +78,7 @@
                    ~(symbolic-derivative base var)))
             ;; Caso generale: f^g
             `(* ~expr
-                (+ (* ~(symbolic-derivative exp var) (ln ~base))
+                (+ (* ~(symbolic-derivative exp var) (Math/log ~base)) ; Clojure's log is natural log
                    (* ~exp (/ ~(symbolic-derivative base var) ~base))))))
       'sin `(* (cos ~(second expr)) ~(symbolic-derivative (second expr) var))
       'cos `(* (- (sin ~(second expr))) ~(symbolic-derivative (second expr) var))
