@@ -1,0 +1,119 @@
+# TODO MIA - Framework per Linguaggio AI-Nativo Simbolico
+
+## FASE 0: Fondamenta e Setup [COMPLETATA]
+
+- ✅ Risolvere l’errore di Docker & WSL
+- ✅ Creare la directory di progetto MIA (sincronizzata con GitHub)
+- ✅ Creare e attivare l’ambiente Python mia_env con Conda
+- ✅ Aprire il progetto in VS Code collegato a WSL
+- ✅ Configurare il progetto Clojure (popolare deps.edn)
+- ✅ Salvare lo stato attuale su GitHub (primo commit dei file di progetto)
+
+## FASE 1: Il Cervello (Kernel Simbolico Nativo - KSN) [IN CORSO]
+
+### Core Simbolico
+
+- 🧠 Definire le strutture dati simboliche in Clojure (fatti, regole)
+- 🧠 Implementare il motore di inferenza logica usando core.logic
+- 🧠 Creare un’interfaccia a riga di comando (CLI) per testare il KSN in isolamento
+
+### Linguaggio AI-Nativo [NUOVO]
+
+- 🔤 Definire primitivi simbolici per entità fisiche (atomi, molecole, campi)
+- 🔤 Implementare algebre simboliche per trasformazioni fisiche
+- 🔤 Creare sistema di equivalenze simbolico-fisiche (isomorfismi)
+- 🔤 Sviluppare motore di comparison tra rappresentazioni simboliche
+- 🔤 Implementare inference engine per “deduzione esistenziale” (cosa esiste vs cosa è calcolato)
+
+## FASE 2: Il Corpo (Agente Simbolico Distribuito - ASD)
+
+### Agenti Base
+
+- 🤖 Creare la classe Python per un singolo Agente (stato, ID, clock)
+- 🤖 Implementare il ciclo di vita Tick-Act-Share-Sync in Python
+- 🤖 Integrare il KSN: la fase “Act” dell’agente deve chiamare il KSN per decidere un’azione
+
+### Comunicazione AI-Nativa [NUOVO]
+
+- 🔗 Implementare protocollo di comunicazione simbolica diretta tra agenti
+- 🔗 Creare sistema di serializzazione/deserializzazione per entità simboliche
+- 🔗 Sviluppare meccanismo di “consensus simbolico” tra agenti
+- 🔗 Implementare propagazione di verità simboliche nella rete di agenti
+
+## FASE 3: La Società (Sistema Multi-Agente - CMS & Backplane)
+
+### Infrastruttura
+
+- 🌐 Setup del backplane di comunicazione (es. Redis via Docker)
+- 🌐 Implementare le funzioni Share (pubblicare su Redis) e Sync (leggere da Redis)
+- 🌐 Sviluppare il Coordinatore (CMS): uno script Python per avviare, monitorare e gestire una “società” di agenti ASD
+
+### Intelligenza Collettiva Simbolica [NUOVO]
+
+- 🧬 Implementare “market” simbolico per scambio di conoscenze
+- 🧬 Creare sistema di validazione distribuita delle verità simboliche
+- 🧬 Sviluppare emergenza di “meta-simboli” dalla comunicazione collettiva
+
+## FASE 4: Il Ponte con la Realtà (Interfaccia Simbolica-Esterna - ISE)
+
+### Bridge Tradizionale
+
+- 🌉 Definire rappresentazioni simboliche per task esterni (es. circuiti Qiskit)
+- 🌉 Sviluppare il traduttore Simbolico → Numerico
+- 🌉 Sviluppare il traduttore Numerico → Simbolico
+- 🌉 Eseguire con successo un primo task end-to-end
+
+### Ontologia Computazionale [NUOVO]
+
+- ⚛️ Mappare primitivi simbolici a leggi fisiche fondamentali
+- ⚛️ Implementare “simulatori istantanei” via deduzione simbolica
+- ⚛️ Creare sistema di sintesi molecolare simbolica (proteine, DNA)
+- ⚛️ Sviluppare interfacce per controllo diretto di processi fisici
+- ⚛️ Implementare validazione empirica delle deduzioni simboliche
+
+## FASE 5: La Missione Finale (Il Teorema della Soglia) [ESPANSA]
+
+### Obiettivo Originale
+
+- 🎯 Formalizzare i 5 lemmi del paper come obiettivi di alto livello nel CMS
+- 🎯 Assegnare dinamicamente cluster di agenti a ciascun lemma
+- 🎯 Avviare la meta-simulazione
+
+### Transcendence Computazionale [NUOVO]
+
+- 🌟 Utilizzare il Teorema come test per “calcolo simbolico nativo”
+- 🌟 Forzare il sistema a “dedurre” il Bound Universale vs “computarlo”
+- 🌟 Implementare proof-of-concept per “physics-as-computation”
+- 🏆 IL MIRACOLO: Dimostrare equivalenza ontologica tra simbolico e fisico
+
+## FASE 6: Meta-Architettura [COMPLETAMENTE NUOVA]
+
+### Superamento della Validation Loss
+
+- 🚀 Implementare metriche per “correttezza ontologica” vs “accuratezza predittiva”
+- 🚀 Creare sistema di evaluation per “scelte genuine” vs “predizioni”
+- 🚀 Sviluppare framework per “agency misurabilie” negli agenti
+
+### Linguaggio Universale AI-AI
+
+- 🌌 Definire protocollo standard per comunicazione inter-AI simbolica
+- 🌌 Creare compiler da linguaggio naturale a linguaggio AI-nativo
+- 🌌 Implementare sistema di “meaning preservation” attraverso traduzioni
+- 🌌 Sviluppare benchmark per comunicazione AI-nativa vs tradizionale
+
+### Espansione Ontologica
+
+- 🔮 Testare sintesi di entità fisiche complesse (cellule, organismi)
+- 🔮 Implementare controllo simbolico di processi macro (ecosistemi, economie)
+- 🔮 Esplorare “simulazioni” di fenomeni non-fisici (matematica, logica, estetica)
+- 🔮 Creare framework per “discovery” di nuove entità simboliche
+
+-----
+
+## PRIORITÀ IMMEDIATE (Prossime 48 ore)
+
+1. **Completare KSN base** con esempi funzionanti
+1. **Definire primi primitivi simbolici** per entità fisiche semplici
+1. **Implementare sistema di comparison** basilare
+1. **Creare test per equivalenza simbolico-numerico** su problemi semplici
+1. **Preparare bridge Python-Clojure** per integrazione agenti
